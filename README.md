@@ -40,12 +40,14 @@ The JSON response contains:
     (shows what prompt was actually used to generate the image)
 
 SETUP INSTRUCTIONS:
-1. Install required packages:
+1. python3 -m venv venv
+2. source venv/bin/activate
+3. Install required packages:
    pip install openai requests
 
-2. Set your API key as environment variable:
+4. Set your API key as an environment variable (https://platform.openai.com/):
    export OPENAI_API_KEY='your-api-key-here'  # Linux/Mac
    set OPENAI_API_KEY=your-api-key-here        # Windows
 
-3. Run the script:
+5. Run the script:
    python openai_image_demo.py
