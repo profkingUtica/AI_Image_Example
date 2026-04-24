@@ -105,7 +105,7 @@ def generate_image(prompt):
 def main():
     logger.info("--- Starting New Demo Run ---")
     
-    user_prompt = "A futuristic cybersecurity command center, 8k resolution, cinematic lighting"
+    user_prompt = "A futuristic digital rose, cinematic lighting"
     result = generate_image(user_prompt)
     
     if result['success']:
