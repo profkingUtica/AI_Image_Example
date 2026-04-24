@@ -67,7 +67,7 @@ def generate_image(prompt):
         logger.info(f"REQUEST: Starting generation for prompt: '{prompt}'")
         
         response = client.chat.completions.create(
-            model="black-forest-labs/flux-1-schnell",
+            model="black-forest-labs/flux.2-klein-4b",
             messages=[{"role": "user", "content": prompt}],
             extra_headers={
                 "HTTP-Referer": "https://utica.edu", 
