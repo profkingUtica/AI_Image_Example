@@ -69,7 +69,7 @@ def generate_image(prompt):
         
         # Make the API call
         response = client.chat.completions.create(
-            model="google/gemini-3.1-flash-image-preview",
+            model="openai/gpt-5.4-image-2",
             messages=[{"role": "user", "content": prompt}],
             extra_headers={
                 "HTTP-Referer": "https://utica.edu", 
