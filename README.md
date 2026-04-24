@@ -8,9 +8,11 @@ SETUP INSTRUCTIONS:
 5. Install required packages:
    pip install openai requests
 
-6. Set your API key as an environment variable (https://platform.openai.com/):
+6a. Set your API key as an environment variable (https://platform.openai.com/):
    export OPENAI_API_KEY='your-api-key-here'  # Linux/Mac
    set OPENAI_API_KEY=your-api-key-here        # Windows
-
-7. Run the script:
-   python openai_image_demo.py
+   OR
+   OpenRouter (https://openrouter.ai/)
+   export OPENROUTER_API_KEY='your-api-key-here'  # Linux/Mac
+   set OPENROUTER_API_KEY=your-api-key-here        # Windows
+7. Run the script
