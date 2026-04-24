@@ -1,6 +1,6 @@
 """
-OpenRouter Image Generation Demo
-Demonstrates API authentication, request handling, and error management using OpenRouter
+OpenRouter Image Generation Demo - Gemini 3.1 Flash Update
+Demonstrates the correct Chat Completions approach for Gemini Image Generation
 """
 
 import os
@@ -9,27 +9,19 @@ import requests
 import json
 from datetime import datetime
 
-def generate_image(prompt, size="1024x1024", quality="standard", n=1):
+def generate_image(prompt):
     """
-    Generate an image using OpenRouter's API (OpenAI Compatible)
-    
-    Args:
-        prompt (str): Description of the image to generate
-        size (str): Image size - "1024x1024", etc.
-        quality (str): "standard" or "hd"
-        n (int): Number of images to generate
-    
-    Returns:
-        dict: Response containing image URL(s) and metadata
+    Generate an image using OpenRouter's Chat Completion endpoint.
+    Note: Gemini 3.1 Flash Image Preview via OpenRouter uses the chat interface 
+    to return image data/URLs.
     """
     
-    # API key should be stored in environment variable for security
     api_key = os.getenv("OPENROUTER_API_KEY")
     
     if not api_key:
         raise ValueError("OPENROUTER_API_KEY environment variable not set")
     
-    # Initialize the client with OpenRouter's base URL
+    # Initialize the client
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
@@ -37,53 +29,45 @@ def generate_image(prompt, size="1024x1024", quality="standard", n=1):
     
     try:
         print(f"Generating image with prompt: '{prompt}'")
-        print(f"Parameters: size={size}, quality={quality}, n={n}\n")
         
-        # Make the API call
-        # Note: Model string depends on what OpenRouter supports (e.g., openai/dall-e-3)
-        response = client.images.generate(
-            model="google/gemini-3.1-flash-image-preview",  
-            prompt=prompt,
-            size=size,
-            quality=quality,
-            n=n,
+        # Gemini 3.1 Flash Image generation on OpenRouter is typically 
+        # handled via the completions endpoint.
+        response = client.chat.completions.create(
+            model="google/gemini-3.1-flash-image-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ]
+                }
+            ],
             extra_headers={
-                "HTTP-Referer": "https://utica.edu", # Optional, for OpenRouter rankings
-                "X-Title": "Image Gen Demo",                # Optional
+                "HTTP-Referer": "https://utica.edu", 
+                "X-Title": "Cybersecurity Educator Tools",
             }
         )
-        
-        # Display raw JSON response
+
+        # Log the response for debugging
         print("=" * 60)
-        print("RAW API RESPONSE (JSON):")
+        print("API RESPONSE RECEIVED")
         print("=" * 60)
+
+        # Extract the image information from the message content
+        # OpenRouter returns the image URL within the choice content for this model
+        content = response.choices[0].message.content
         
-        response_dict = {
-            'created': response.created,
-            'data': [
-                {
-                    'url': img.url,
-                    'revised_prompt': getattr(img, 'revised_prompt', None)
-                }
-                for img in response.data
-            ]
-        }
+        # In many implementations, the image is provided as a URL or a markdown link
+        # We will return the result to be processed
+        print(f"✓ Response content received.")
         
-        print(json.dumps(response_dict, indent=2))
-        print("=" * 60 + "\n")
-        
-        images = []
-        for img in response.data:
-            images.append({
-                'url': img.url,
-                'revised_prompt': getattr(img, 'revised_prompt', None)
-            })
-        
-        print(f"✓ Successfully generated {len(images)} image(s)")
         return {
             'success': True,
-            'images': images,
-            'created': response.created
+            'content': content,
+            'raw': response
         }
         
     except Exception as e:
@@ -93,62 +77,22 @@ def generate_image(prompt, size="1024x1024", quality="standard", n=1):
             'error': str(e)
         }
 
-
-def download_image(url, filename=None):
-    """
-    Download image from URL to local file
-    """
-    if not filename:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"generated_image_{timestamp}.png"
-    
-    try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        
-        with open(filename, 'wb') as f:
-            f.write(response.content)
-        
-        print(f"✓ Image saved to: {filename}")
-        return filename
-        
-    except Exception as e:
-        print(f"✗ Error downloading image: {str(e)}")
-        return None
-
-
 def main():
-    """
-    Main demonstration function
-    """
     print("=" * 60)
-    print("OpenRouter Image Generation Demo")
+    print("OpenRouter Gemini 3.1 Flash Image Demo")
     print("=" * 60 + "\n")
     
-    # Ensure you have OPENROUTER_API_KEY set in your environment
-    prompt = "A cybersecurity professional analyzing data on holographic screens in a futuristic command center"
+    # Example prompt relevant to your cybersecurity curriculum
+    prompt = "A high-resolution technical diagram of a secure network architecture with a hardware firewall and DMZ, 3d isometric style"
     
-    result = generate_image(
-        prompt=prompt,
-        size="1024x1024",
-        quality="standard",
-        n=1
-    )
+    result = generate_image(prompt)
     
     if result['success']:
-        print("\nGenerated Image Details:")
+        print("\nGeneration Result:")
         print("-" * 60)
-        for i, img in enumerate(result['images'], 1):
-            print(f"\nImage {i}:")
-            print(f"URL: {img['url']}")
-            if img['revised_prompt']:
-                print(f"Revised Prompt: {img['revised_prompt']}")
-            
-            download_image(img['url'], f"cybersecurity_demo_{i}.png")
-    
-    print("\n" + "=" * 60)
-    print("Demo Complete!")
-    print("=" * 60)
+        print(result['content'])
+    else:
+        print(f"Failed to generate: {result['error']}")
 
 if __name__ == "__main__":
     main()
