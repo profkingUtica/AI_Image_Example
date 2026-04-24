@@ -1,98 +1,101 @@
 """
-OpenRouter Image Generation Demo - Gemini 3.1 Flash Update
-Demonstrates the correct Chat Completions approach for Gemini Image Generation
+OpenRouter Gemini 3.1 Flash Image Update
+Extracts generated URL and saves it to the local directory.
 """
 
 import os
-from openai import OpenAI
+import re
 import requests
 import json
+from openai import OpenAI
 from datetime import datetime
 
-def generate_image(prompt):
+def download_image(url, filename=None):
     """
-    Generate an image using OpenRouter's Chat Completion endpoint.
-    Note: Gemini 3.1 Flash Image Preview via OpenRouter uses the chat interface 
-    to return image data/URLs.
+    Downloads an image from a URL and saves it to the current directory.
     """
+    if not filename:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"gemini_gen_{timestamp}.png"
     
+    try:
+        # Get the current script's directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        save_path = os.path.join(current_dir, filename)
+
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        
+        with open(save_path, 'wb') as f:
+            f.write(response.content)
+        
+        print(f"✓ Image saved to: {save_path}")
+        return save_path
+        
+    except Exception as e:
+        print(f"✗ Error downloading image: {str(e)}")
+        return None
+
+def generate_image(prompt):
     api_key = os.getenv("OPENROUTER_API_KEY")
     
     if not api_key:
         raise ValueError("OPENROUTER_API_KEY environment variable not set")
     
-    # Initialize the client
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
     )
     
     try:
-        print(f"Generating image with prompt: '{prompt}'")
+        print(f"Generating image with prompt: '{prompt}'...")
         
-        # Gemini 3.1 Flash Image generation on OpenRouter is typically 
-        # handled via the completions endpoint.
         response = client.chat.completions.create(
             model="google/gemini-3.1-flash-image-preview",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": prompt
-                        }
-                    ]
-                }
-            ],
+            messages=[{"role": "user", "content": prompt}],
             extra_headers={
                 "HTTP-Referer": "https://utica.edu", 
-                "X-Title": "Cybersecurity Educator Tools",
+                "X-Title": "Cybersecurity Image Lab",
             }
         )
 
-        # Log the response for debugging
-        print("=" * 60)
-        print("API RESPONSE RECEIVED")
-        print("=" * 60)
-
-        # Extract the image information from the message content
-        # OpenRouter returns the image URL within the choice content for this model
         content = response.choices[0].message.content
         
-        # In many implementations, the image is provided as a URL or a markdown link
-        # We will return the result to be processed
-        print(f"✓ Response content received.")
+        # Regex to find a URL starting with http/https and ending in common image extensions
+        # or simply look for the first URL in the markdown/text.
+        urls = re.findall(r'(https?://[^\s]+)', content)
         
-        return {
-            'success': True,
-            'content': content,
-            'raw': response
-        }
-        
+        if urls:
+            # Take the first URL found and download it
+            image_url = urls[0].strip('()[]') # Clean up markdown brackets if present
+            local_file = download_image(image_url)
+            return {'success': True, 'url': image_url, 'local_path': local_file}
+        else:
+            print("✗ No image URL found in the response content.")
+            print(f"Raw content: {content}")
+            return {'success': False, 'error': 'No URL found'}
+            
     except Exception as e:
-        print(f"✗ Error generating image: {str(e)}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
+        print(f"✗ API Error: {str(e)}")
+        return {'success': False, 'error': str(e)}
 
 def main():
     print("=" * 60)
-    print("OpenRouter Gemini 3.1 Flash Image Demo")
-    print("=" * 60 + "\n")
+    print("Gemini Image Gen & Auto-Save")
+    print("=" * 60)
     
-    # Example prompt relevant to your cybersecurity curriculum
-    prompt = "A high-resolution technical diagram of a secure network architecture with a hardware firewall and DMZ, 3d isometric style"
+    # Example prompt for your Cybersecurity students
+    user_prompt = "A high-tech digital forensic workstation with multiple monitors showing hex code and packet captures, cinematic lighting"
     
-    result = generate_image(prompt)
+    result = generate_image(user_prompt)
     
     if result['success']:
-        print("\nGeneration Result:")
-        print("-" * 60)
-        print(result['content'])
-    else:
-        print(f"Failed to generate: {result['error']}")
+        print("\nProcess Complete!")
+        print(f"Image Link: {result['url']}")
+        if result['local_path']:
+            print(f"Local File: {os.path.basename(result['local_path'])}")
+    
+    print("=" * 60)
 
 if __name__ == "__main__":
     main()
