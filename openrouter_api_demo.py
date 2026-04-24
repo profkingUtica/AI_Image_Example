@@ -1,14 +1,29 @@
 """
 OpenRouter Gemini 3.1 Flash Image Update
-Fixed: NameError on 'response' and moved debug line inside the function scope.
+Added: persistent logging to 'image_gen.log' to capture success/failure history.
 """
 
 import os
 import re
 import requests
-import json
+import logging
 from openai import OpenAI
 from datetime import datetime
+
+# --- LOGGING CONFIGURATION ---
+# This setup ensures logs are written to a file and also show up in your terminal.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(current_dir, "image_gen.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),  # Saves to file
+        logging.StreamHandler()         # Also prints to terminal
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # --- HELPER FUNCTIONS ---
 
@@ -18,21 +33,20 @@ def download_image(url, filename=None):
         filename = f"gemini_gen_{timestamp}.png"
     
     try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
         save_path = os.path.join(current_dir, filename)
-
-        print(f"Attempting to download image to: {save_path}...")
+        logger.info(f"Attempting download from URL: {url}")
+        
         response = requests.get(url, timeout=30)
         response.raise_for_status()
         
         with open(save_path, 'wb') as f:
             f.write(response.content)
         
-        print(f"✓ Image successfully saved to: {filename}")
+        logger.info(f"SUCCESS: Image saved as {filename}")
         return save_path
         
     except Exception as e:
-        print(f"✗ Error downloading image: {str(e)}")
+        logger.error(f"FAILURE: Download failed for {url}. Error: {str(e)}")
         return None
 
 # --- MAIN GENERATION FUNCTION ---
@@ -40,7 +54,9 @@ def download_image(url, filename=None):
 def generate_image(prompt):
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        raise ValueError("OPENROUTER_API_KEY environment variable not set")
+        err_msg = "OPENROUTER_API_KEY environment variable not set"
+        logger.critical(err_msg)
+        raise ValueError(err_msg)
     
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -48,7 +64,7 @@ def generate_image(prompt):
     )
     
     try:
-        print(f"Generating image with prompt: '{prompt}'...")
+        logger.info(f"REQUEST: Starting generation for prompt: '{prompt}'")
         
         response = client.chat.completions.create(
             model="google/gemini-3.1-flash-image-preview",
@@ -59,52 +75,43 @@ def generate_image(prompt):
             }
         )
 
-        # DEBUG LINE MOVED HERE: Now 'response' is correctly defined in this scope
-        print(f"DEBUG: Raw Choice Object: {response.choices[0]}")
-
-        try:
-            content = response.choices[0].message.content
-        except (AttributeError, IndexError) as e:
-            print("✗ API Response structure is unexpected.")
-            return {'success': False, 'error': f'Invalid response structure: {str(e)}'}
+        content = response.choices[0].message.content
 
         if not content:
-            print("✗ API returned an empty text content.")
-            return {'success': False, 'error': 'API returned empty content.'}
+            logger.warning("FAILURE: API returned empty content field.")
+            return {'success': False, 'error': 'Empty content'}
 
+        # Find URL in response
         urls = re.findall(r'(https?://[^\s]+)', content)
         
         if urls:
             image_url = urls[0].strip('()[]')
-            print(f"✓ URL found: {image_url}")
+            logger.info(f"URL FOUND: {image_url}")
+            
             local_file = download_image(image_url)
             
             if local_file:
                 return {'success': True, 'url': image_url, 'local_path': local_file}
             else:
-                return {'success': False, 'error': 'Download failed.'}
+                return {'success': False, 'error': 'Download failed'}
         else:
-            print(f"✗ No image URL found. Content was: \"{content}\"")
-            return {'success': False, 'error': 'No valid URL found in text.'}
+            logger.warning(f"FAILURE: No URL found in content: {content[:100]}...")
+            return {'success': False, 'error': 'No URL in text'}
             
     except Exception as e:
-        print(f"✗ Unexpected API Error: {str(e)}")
+        logger.error(f"EXCEPTION: API Call failed. Error: {str(e)}")
         return {'success': False, 'error': str(e)}
 
 def main():
-    print("=" * 60)
-    print("Gemini Image Gen & Auto-Save (Fixed)")
-    print("=" * 60)
+    logger.info("--- Starting New Demo Run ---")
     
-    user_prompt = "A high-tech digital forensic workstation, cinematic lighting"
+    user_prompt = "A futuristic cybersecurity command center, 8k resolution, cinematic lighting"
     result = generate_image(user_prompt)
     
-    print("\n" + "-" * 60)
     if result['success']:
-        print(f"PROCESS COMPLETE: SUCCESS\nLocal File: {os.path.basename(result['local_path'])}")
+        logger.info(f"RUN COMPLETE: Image ready at {result['local_path']}")
     else:
-        print(f"PROCESS COMPLETE: FAILED\nReason: {result['error']}")
-    print("=" * 60)
+        logger.error(f"RUN COMPLETE: Failed with reason: {result['error']}")
 
 if __name__ == "__main__":
     main()
