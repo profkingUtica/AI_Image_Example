@@ -67,7 +67,7 @@ def generate_image(prompt):
         logger.info(f"REQUEST: Starting generation for prompt: '{prompt}'")
         
         response = client.chat.completions.create(
-            model="google/gemini-3.1-flash-image-preview",
+            model="black-forest-labs/flux-1-schnell",
             messages=[{"role": "user", "content": prompt}],
             extra_headers={
                 "HTTP-Referer": "https://utica.edu", 
