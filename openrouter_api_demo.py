@@ -157,6 +157,7 @@ def main():
         print(f"  Reason: {result['error']}")
     
     print("=" * 60)
-
+# Temporary debug line
+print(f"DEBUG: Raw Choice Object: {response.choices[0]}")
 if __name__ == "__main__":
     main()
