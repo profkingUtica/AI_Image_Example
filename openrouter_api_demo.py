@@ -139,7 +139,7 @@ def main():
     print("=" * 60)
     
     # Define your prompt (reused your previous one as a good example)
-    user_prompt = "A high-tech digital forensic workstation with multiple monitors showing hex code and packet captures, cinematic lighting"
+    user_prompt = "Generate and provide a direct URL for an image of: A high-tech digital forensic workstation with multiple monitors showing hex code and packet captures, cinematic lighting"
     
     # Run the robust generation process
     result = generate_image(user_prompt)
