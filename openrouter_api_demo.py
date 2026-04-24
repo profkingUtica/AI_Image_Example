@@ -42,13 +42,13 @@ def generate_image(prompt, size="1024x1024", quality="standard", n=1):
         # Make the API call
         # Note: Model string depends on what OpenRouter supports (e.g., openai/dall-e-3)
         response = client.images.generate(
-            model="openai/dall-e-3",  
+            model="google/gemini-3.1-flash-image-preview",  
             prompt=prompt,
             size=size,
             quality=quality,
             n=n,
             extra_headers={
-                "HTTP-Referer": "https://your-site-url.com", # Optional, for OpenRouter rankings
+                "HTTP-Referer": "https://utica.edu", # Optional, for OpenRouter rankings
                 "X-Title": "Image Gen Demo",                # Optional
             }
         )
